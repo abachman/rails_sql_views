@@ -1,9 +1,13 @@
 module RailsSqlViews
   module ConnectionAdapters
     module Mysql2Adapter
+      REQUIRED_METHODS = [:supports_views?]
+
       def self.included(base)
-        if base.private_method_defined?(:supports_views?)
-          base.send(:public, :supports_views?)
+        base.class_eval do
+          def self.method_added(method)
+            public(method) if REQUIRED_METHODS.include?(method) && !self.public_method_defined?(method)
+          end
         end
       end
 
@@ -11,14 +15,14 @@ module RailsSqlViews
       def supports_views?
         true
       end
-      
+
       def base_tables(name = nil) #:nodoc:
         tables = []
         execute("SHOW FULL TABLES WHERE TABLE_TYPE='BASE TABLE'").each{|row| tables << row[0]}
         tables
       end
       alias nonview_tables base_tables
-      
+
       def views(name = nil) #:nodoc:
         views = []
         execute("SHOW FULL TABLES WHERE TABLE_TYPE='VIEW'").each{|row| views << row[0]}
@@ -28,7 +32,7 @@ module RailsSqlViews
       def tables_with_views_included(name = nil)
         nonview_tables(name) + views(name)
       end
-      
+
       def structure_dump
         structure = ""
         base_tables.each do |table|
@@ -52,7 +56,7 @@ module RailsSqlViews
           raise "No view called #{view} found"
         end
       end
-      
+
       private
       def convert_statement(s)
         s.gsub!(/.* AS (select .*)/, '\1')

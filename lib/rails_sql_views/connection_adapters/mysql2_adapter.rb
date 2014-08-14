@@ -8,6 +8,9 @@ module RailsSqlViews
           def self.method_added(method)
             public(method) if REQUIRED_METHODS.include?(method) && !self.public_method_defined?(method)
           end
+
+          # manually publicize this method
+          public(:supports_views?)
         end
       end
 

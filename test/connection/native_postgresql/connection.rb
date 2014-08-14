@@ -1,3 +1,5 @@
+require 'yaml'
+
 print "Using native PostgreSQL\n"
 
 adapter_name = 'postgresql'
@@ -8,15 +10,15 @@ config = YAML.load_file(File.join(File.dirname(__FILE__), '/../../connection.yml
 
 ActiveRecord::Base.silence do
   ActiveRecord::Base.configurations = {
-  'rails_sql_views_unittest' => {
-    :adapter  => adapter_name,
-    :username => config['username'],
-    :password => config['password'],
-    :host     => config['host'],
-    :database => config['database'],
-    :encoding => config['encoding'],
-    :schema_file => config['schema_file'],
-  }
+    'rails_sql_views_unittest' => {
+      :adapter  => adapter_name,
+      :username => config['username'],
+      :password => config['password'],
+      :host     => config['host'],
+      :database => config['database'],
+      :encoding => config['encoding'],
+      :schema_file => config['schema_file'],
+    }
   }
 
   ActiveRecord::Base.establish_connection config['database']

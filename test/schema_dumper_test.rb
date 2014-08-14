@@ -5,6 +5,7 @@ class SchemaDumperTest < Test::Unit::TestCase
   def setup
     teardown
   end
+
   def teardown
     ['V_PEOPLE', 'V_PROFILE'].each do |view|
       if ActiveRecord::Base.connection.adapter_name == 'OracleEnhanced'
@@ -22,53 +23,64 @@ class SchemaDumperTest < Test::Unit::TestCase
       end
     end
   end
+
   def test_view
     create_people_view
     stream = StringIO.new
     dumper = ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
     stream.rewind
-    assert_equal File.open(File.dirname(__FILE__) + "/schema.#{$connection}.expected.rb", 'r').readlines, stream.readlines
+
+    generated = stream.readlines.join('').strip
+    expected  = File.open(File.dirname(__FILE__) + "/schema.#{$connection}.expected.rb", 'r').readlines.join('').strip
+
+    assert_equal expected.strip, generated.strip
   end
+
   def test_dump_and_load
     create_people_view
     assert_dump_and_load_succeed
   end
+
   def test_union
     Person.create(:first_name => 'Joe', :last_name => 'User', :ssn => '123456789')
     Person2.create(:first_name => 'Jane', :last_name => 'Doe', :ssn => '222334444')
-    
+
     select_stmt = <<-HERE
       select first_name, last_name, ssn from people
       UNION
       select first_name, last_name, ssn from people2
     HERE
-    
+
     ActiveRecord::Base.connection.create_view(:v_profile, select_stmt, :force => true) do |v|
       v.column :first_name
       v.column :last_name
       v.column :ssn
     end
-    
+
     assert_dump_and_load_succeed
   end
+
   def test_view_creation_order
     ActiveRecord::SchemaDumper.view_creation_order << :v_people
     create_people_view
     assert_dump_and_load_succeed
     ActiveRecord::SchemaDumper.view_creation_order.pop
   end
+
   def test_symbol_ignore
     ActiveRecord::SchemaDumper.ignore_views << :v_people
     create_people_view
     assert_dump_and_load_succeed
     ActiveRecord::SchemaDumper.ignore_views.pop
   end
+
   def test_regex_ignore
     ActiveRecord::SchemaDumper.ignore_views << Regexp.new(/v_people/)
     create_people_view
     assert_dump_and_load_succeed
     ActiveRecord::SchemaDumper.ignore_views.pop
   end
+
   def test_non_allowed_object_raises_error
     create_people_view
     ActiveRecord::SchemaDumper.ignore_views << 0
@@ -83,11 +95,11 @@ class SchemaDumperTest < Test::Unit::TestCase
       ActiveRecord::SchemaDumper.ignore_views.pop
     end
   end
-  
+
   def test_logging_error
     ActiveRecord::SchemaDumper.ignore_views << 0
     old_logger = ActiveRecord::Base.logger
-    
+
     begin
       mock_logger = flexmock('logger', :error => nil)
       mock_logger.should_receive(:error)
@@ -101,7 +113,7 @@ class SchemaDumperTest < Test::Unit::TestCase
       ActiveRecord::Base.logger = old_logger
     end
   end
-  
+
   def assert_dump_and_load_succeed
     schema_file = File.dirname(__FILE__) + "/schema.#{$connection}.out.rb"
     assert_nothing_raised do
